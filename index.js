@@ -28,3 +28,19 @@ app.get("/version", (req, res) => {
 app.listen(PORT, () => {
   console.log(`✅ Server running on port ${PORT}`);
 });
+
+const { Pool } = require("pg");
+const pool = new Pool({
+  connectionString: process.env.DATABASE_URL,
+  ssl: { rejectUnauthorized: false } // required for Render
+});
+
+// Example route: test the connection
+app.get("/db-test", async (req, res) => {
+  try {
+    const result = await pool.query("SELECT NOW()");
+    res.json({ db_time: result.rows[0].now });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
