@@ -1,14 +1,24 @@
+// Existing imports
 const express = require("express");
-const app = express();
-const PORT = process.env.PORT || 3000;
+const { Pool } = require("pg");
 const pkg = require("./package.json");
 
-app.use(express.static("public"));
+const app = express();
+const PORT = process.env.PORT || 3000;
 
-app.get("/", (req, res) => {
-  res.send("Hello from the Cloud");
+// Database setup
+const pool = new Pool({
+  connectionString: process.env.DATABASE_URL,
+  ssl: { rejectUnauthorized: false }
 });
 
+// Serve static files
+app.use(express.static("public"));
+
+// Routes
+app.get("/", (req, res) => res.send("Hello from the Cloud"));
+
+// Time route
 app.get("/time", (req, res) => {
   const now = new Date();
   res.json({
@@ -17,6 +27,7 @@ app.get("/time", (req, res) => {
   });
 });
 
+// Version route
 app.get("/version", (req, res) => {
   res.json({
     name: pkg.name,
@@ -25,17 +36,7 @@ app.get("/version", (req, res) => {
   });
 });
 
-app.listen(PORT, () => {
-  console.log(`✅ Server running on port ${PORT}`);
-});
-
-const { Pool } = require("pg");
-const pool = new Pool({
-  connectionString: process.env.DATABASE_URL,
-  ssl: { rejectUnauthorized: false } // required for Render
-});
-
-// Example route: test the connection
+// DB test route
 app.get("/db-test", async (req, res) => {
   try {
     const result = await pool.query("SELECT NOW()");
@@ -44,3 +45,15 @@ app.get("/db-test", async (req, res) => {
     res.status(500).json({ error: err.message });
   }
 });
+
+// Messages route (fetch data from your new table)
+app.get("/messages", async (req, res) => {
+  try {
+    const result = await pool.query("SELECT * FROM messages ORDER BY id ASC");
+    res.json(result.rows);
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+app.listen(PORT, () => console.log(`✅ Server running on port ${PORT}`));
